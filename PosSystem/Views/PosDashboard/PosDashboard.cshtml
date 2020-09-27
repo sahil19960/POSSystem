@@ -1,0 +1,137 @@
+﻿@model IEnumerable<Product>
+
+@{
+    ViewData["Title"] = "PosDashboard";
+}
+<br />
+<div id="cart" ondrop="drop(event)" ondragover="allowDrop(event)">
+    <table class="table">
+        <thead id="">
+            <tr>
+                <th></th>
+                <th>Products</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody id="cart-list" style="overflow-y:auto">
+            <tr class="cartItem" id="no-products">
+                <td colspan="5">There are no products</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<div id="items">
+    <ul class="nav nav-tabs">
+        <li class="active" onclick="getPosStoreItemsByCategory(0, this)"><a><span class="glyphicon glyphicon-home"></span></a></li>
+        <li onclick="getPosStoreItemsByCategory(1, this)"><a>Computers</a></li>
+        <li onclick="getPosStoreItemsByCategory(2, this)"><a>Fruits</a></li>
+        <li onclick="getPosStoreItemsByCategory(3, this)"><a>Clothing</a></li>
+        <li onclick="getPosStoreItemsByCategory(4, this)"><a>Services</a></li>
+        <li onclick="getPosStoreItemsByCategory(5, this)"><a>Burger</a></li>
+        <li onclick="getPosStoreItemsByCategory(6, this)"><a>Pizza</a></li>
+    </ul>
+    <form class="form-inline my-2 my-lg-0 ">
+        <input id="product-search" class="form-control" type="search" placeholder="Search" aria-label="Search" style="width:92%">
+        <button class="btn btn-primary" type="button" onclick="getPosStoreItemsByNameInitials()"><span class="glyphicon glyphicon-search"></span></button>
+    </form>
+    <br />
+    <div id="pos-store-items" class="pos-store-items">
+        <partial name="_PosStorePartial" for="@Model">
+    </div>
+    <div class="pos-store-total">
+        <table class="table">
+            <tbody id="cart-list" style="overflow-y:auto">
+                <tr>
+                    <td class="sub-total-label"><b>Sub Total</b></td>
+                    <td class="subtotal-value-item-cost" id="subtotal-value">0.000 Euro</td>
+                    <td class="sub-total-item" id="subtotal-items">0 Items</td>
+                </tr>
+                <tr>
+                    <td class="sub-total-label"><b>Including VAT</b></td>
+                    <td class="subtotal-value-item-cost"><input id="subtotal-vat-input" type="text" class="form-control" value="0" onchange="calculateVat()" style="height:20px;text-align:right;" maxlength="6" /></td>
+                    <td class="sub-total-item" id="subtotal-vat">0.000 Euro</td>
+                </tr>
+                <tr>
+                    <td class="sub-total-label"><b>Discount</b></td>
+                    <td class="subtotal-value-item-cost"><input id="subtotal-discount-input" type="text" class="form-control" value="0" onchange="calculateDiscount()" style="height:20px;text-align:right;" maxlength="6" /></td>
+                    <td class="sub-total-item" id="subtotal-discount">0.000 Euro</td>
+                </tr>
+                <tr>
+                    <td class="sub-total-label"><b>Total</b></td>
+                    <td class="pos-total" id="pos-total" colspan="2" style="color:green;text-align:left">0.000 Euro</td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" data-toggle="modal" data-target="#cancelConfirmationModal" class="btn btn-danger" style="position:absolute; top:152px;left:0px; width:260px">Cancel</button>
+        <button type="button" data-toggle="modal" data-target="#progressConfirmationModal" class="btn btn-success" style="position:absolute; top:152px;left:277px; width:260px" onclick="processSales()">Process Sale</button>
+    </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="cancelConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Cancel Sale Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Do you really want to cancel the sale.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                <button type="button" class="btn btn-primary" onclick="window.location.reload()">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="progressConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Receipt</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="process-sales-body">
+                <center><img id="process-loader" src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif" style="height: 20%; width:20%" /></center>
+                <center id="sale-number-text" style="display:none"><b>Sale Number:</b>&nbsp;&nbsp;<span id="sale-number"></span></center>
+                </br>
+                <div id="receipt-date-label" style="display:none"><b>Date:</b>&nbsp;&nbsp;<span id="receipt-date"></span></div>
+                <center>
+                    <table class="table" id="process-sale-receipt" style="display:none">
+                        <thead id="" style="border-bottom:0.5px solid">
+                            <tr>
+                                <th>Products</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receipt-list" style="overflow-y:auto">
+                        </tbody>
+                    </table>
+                </center>
+                <br/>
+                <div id="receipt-totals" style="display:none">
+                    <b>Total Items:</b>&nbsp;<span id="receipt-total-item"></span> 
+                    <br/>
+                    <b>Total Cost:</b> &nbsp;<span id="receipt-total-cost"></span>
+                    <br />
+                    <b>VAT:</b> &nbsp;<span id="receipt-vat"></span> <br />
+                    <b>Grand Total:</b> &nbsp;<span id="receipt-grand"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="window.location.reload()">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+

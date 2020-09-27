@@ -1,0 +1,14 @@
+﻿@model Product
+    
+    <tr class="cartItem @Model.ProductId">
+        <td><i class="fa fa-close" style="font-size:20px;color:red;padding-left:10px;" onclick="removeItemFromCart(@Model.ProductId,this)"></i></td>
+        <td id="product-name-@Model.ProductId">@Model.ProductName</td>
+        <td id="price-@Model.ProductId">@String.Format("{0:N3}",Model.UnitPrice)</td>
+
+        <td><input value ="1" type="number" min="1" max="@Model.AvailableQuantity" 
+                   onchange="CalculatePosTransactionValues(@Model.ProductId)" 
+                   onload="CalculatePosTransactionValues(@Model.ProductId)" 
+                   style="height:22px;width:50px;text-align:center" id="quantity-@Model.ProductId"/></td>
+
+        <td id="total-@Model.ProductId">@String.Format("{0:N3}",Convert.ToDecimal(Model.UnitPrice)) Euro</td>
+    </tr>

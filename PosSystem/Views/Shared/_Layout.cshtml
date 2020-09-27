@@ -1,0 +1,438 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PosSystem</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+    <style>
+        #cart {
+            width: 40%;
+            height: 260px;
+            position: absolute;
+            border: 1px solid #aaaaaa;
+            background-color: rgb(248,248,248);
+            border-radius: 3px;
+            overflow-y: auto;
+        }
+
+        #items {
+            width: 53%;
+            height: 450px;
+            padding: 10px;
+            position: relative;
+            top: 0px;
+            left: 540px;
+            border: 1px solid #aaaaaa;
+            background-color: rgb(248,248,248);
+            border-radius: 3px;
+        }
+
+        .cartItem {
+            border-bottom: 1px solid #ddd;
+            border-top: none;
+            background-color: white;
+        }
+
+        #no-products {
+            text-align: center;
+        }
+
+        #cart-header {
+            height: 1px;
+        }
+
+        .itemImage {
+            border-radius: 3px;
+            height: 90px;
+            width: 115px;
+            border: 1.5px blue solid;
+        }
+
+        .pos-store-items {
+            overflow-x: auto;
+            max-height: 300px;
+        }
+
+        .pos-item-description {
+            float: left;
+            padding-right: 10px;
+            padding-bottom: 20px;
+            height: 30%;
+            width: 25%;
+        }
+
+        .pos-item-container {
+            list-style: none;
+            padding-left: 0px;
+        }
+
+        .pos-store-total{
+            width: 92%;
+            height: 190px;
+            position: absolute;
+            border: 1px solid #aaaaaa;
+            background-color: rgb(248,248,248);
+            border-radius: 3px;
+            left: -540px;
+            top: 260px;
+            overflow-y:auto;
+        }
+
+        .active {
+            background-color: white;
+        }
+
+        .sub-total-label
+        {
+            background-color: #D3D3D3;
+            text-align: left;
+            border: 1px solid black; 
+            width: 50%;
+        }
+
+        .sub-total-value
+        {
+            background-color: white;
+            text-align: right;
+            border: 1px solid black; 
+            width: 50%;
+        }
+
+        .sub-total-item
+        {
+            background-color: white;
+            text-align: right;
+            border-bottom: 1px solid black; 
+            width: 25%;
+        }
+
+        .subtotal-value-item-cost
+        {
+            background-color: white;
+            text-align: right;
+            border-bottom: 1px solid black; 
+            width: 25%;
+        }
+        .pos-total
+        {
+            background-color: white;
+            text-align: right;
+            border-bottom: 1px solid black;
+        }
+
+        .cancel-proces{
+            background-color: white;
+            text-align: right;
+            border-bottom: 1px solid black;
+            height:50px;
+        }
+
+        .imageDescription{
+            opacity: 0.2;
+            background-color:blue;
+            position: relative;
+        }
+
+    </style>
+
+
+    <script>
+        var selectedProducts = new Array();
+        var categorySelected = 0;
+        var activeTabObject;
+        var cartItemsAvailableAmount = [];
+
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function CreateCartItemsAndAmountAvailableCollection(item) {
+            var salesItemDetails = {
+                ProductId: item,
+                ConsumedQuantity: $("#quantity-" + item).val(),
+                TotalPrice: $("#total-" + item).text()
+            };
+
+            cartItemsAvailableAmount.push(salesItemDetails);
+        }
+
+        
+        function showInReceipt(item) {
+            $("#receipt-list").append(
+
+                "<tr>" +
+                "<td>" + $("#product-name-" + item).text() + "</td>" +
+                    "<td>"+$("#quantity-" + item).val()+"</td>" +
+                    "<td>"+$("#total-" + item).text()+"</td>"
+                + "</tr>"
+            );
+        }
+
+        function processSales() {
+
+            if (selectedProducts.length == 0) {
+                $("#process-sales-body").html("No products in your cart.");
+
+                return;
+            }
+
+            var transactionDetails = {
+                Discount: $("#subtotal-discount-input").val(),
+                Vat: $("#subtotal-vat-input").val()
+            };
+
+            selectedProducts.forEach(CreateCartItemsAndAmountAvailableCollection);
+
+            $.ajax({
+                url: '@Url.Action("SaveSalesTransactionDetails")',
+                type: 'POST',
+                cache: false,
+                data: { transactionDetails:transactionDetails, invoiceItemDetails:cartItemsAvailableAmount}
+            }).done(function (result) {
+                $("#process-loader").css("display","none");
+                $("#process-sale-receipt").css("display","inline");
+                $("#sale-number-text").css("display","inline");
+                $("#receipt-date-label").css("display","inline");
+                $("#receipt-totals").css("display","inline");
+
+                $("#sale-number").text(result.invoiceNumber);
+                $("#receipt-date").text(result.dateOfSale.toString().split("T")[0]);
+                $("#receipt-total-item").text($("#subtotal-items").text());
+                $("#receipt-total-cost").text($("#subtotal-value").text());
+                $("#receipt-vat").text(parseFloat($("#subtotal-vat-input").val()).toFixed(3) + " Euro");
+                $("#receipt-grand").text($("#pos-total").text());
+                
+
+                selectedProducts.forEach(showInReceipt);
+
+             });
+        }
+
+        function getPosStoreItemsByCategory(category, activeTab) {
+
+            $("#items .active").removeClass("active");
+            $(activeTab).addClass("active");
+            activeTabObject = activeTab;
+
+            $.ajax({
+                url: '@Url.Action("GetPosStoreItemsByCategory")',
+                type: 'POST',
+                cache: false,
+                traditional: true,
+                data: { category: category, cartProducts: selectedProducts }
+                }).done(function(result) {
+                        $('#pos-store-items').html(result);
+                });
+
+            categorySelected = category;
+        }
+
+        function getPosStoreItemsByNameInitials() {
+
+            let nameInitials = $("#product-search").val();
+
+            $.ajax({
+                url: '@Url.Action("GetPosStoreItemsByNameInitials")',
+                type: 'GET',
+                cache: false,
+                traditional: true,
+                data: { nameInitials: nameInitials, categorySelected: categorySelected, cartProducts: selectedProducts }
+                }).done(function(result) {
+                        $('#pos-store-items').html(result);
+                });
+        }
+
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            var productId = ev.dataTransfer.getData("text");
+
+            let cartItemImage = document.getElementById(productId)
+
+            $(cartItemImage).parent().css( "display", "none" );
+
+            document.getElementById("no-products").style.display = "none";
+
+            addItemToCart(productId);
+
+            selectedProducts.push(productId);
+
+            setTimeout(function(){ CalculatePosTransactionValues(productId) }, 100); 
+
+        }
+
+        function addItemToCart(productId) {
+            if ($("." + productId).length === 0) {
+
+                $.ajax({
+                    url: '@Url.Action("GetPosStoreItemById")',
+                    type: 'GET',
+                    cache: false,
+                    traditional: true,
+                    data: { productId: productId }
+                }).done(function (result) {
+                    $("#cart-list").append(result);
+                });
+            }
+            else {
+                $("." + productId).css( "display", "table-row" );
+            }
+        }
+
+        function removeItemFromCart(productId, productItemInCart) {
+
+            $(productItemInCart).parent().parent().css("display", "none");
+
+            const index = selectedProducts.indexOf(productId.toString());
+            if (index > -1) {
+              selectedProducts.splice(index, 1);
+            }
+
+            if (selectedProducts.length === 0) {
+                document.getElementById("no-products").style.display = "table-row";
+            }
+
+            let cartItemImage = document.getElementById(productId);
+
+            $(cartItemImage).parent().css("display", "inline");
+            getPosStoreItemsByCategory(categorySelected, activeTabObject);
+
+            $("#quantity-" + productId).val(1);
+            CalculatePosTransactionValues(productId);
+        }
+
+        var myVar = setInterval(calculateSubtotalValues, 5000);
+
+        function calculateSubtotalValues() {
+            calculateSubTotalValues();
+            calculateVat();
+            calculateDiscount();
+            calculatePosTotal();
+        }
+
+        function CalculatePosTransactionValues(productId) {
+            let total = parseFloat(parseInt($("#quantity-" + productId).val()) * parseFloat($("#price-" + productId).text())).toFixed(3);
+
+            $("#total-" + productId).text(total + " Euro");
+
+            calculateSubTotalValues();
+            calculateVat();
+            calculateDiscount();
+            calculatePosTotal();
+        }
+
+        var subTotal = 0;
+
+        function calculateSubTotalValues() {
+            $("#subtotal-items").text(selectedProducts.length + " Items");
+
+            subTotal = 0;
+
+            if (selectedProducts.length > 0) {
+                selectedProducts.forEach(calculateSubTotal);
+            }
+            else {
+                $("#subtotal-value").text(subTotal.toFixed(3) + " Euro");
+            }
+        }
+
+        function calculateSubTotal(item) {
+            subTotal = subTotal + parseFloat($("#total-" + item).text().toString().split(" ")[0]);
+            $("#subtotal-value").text(subTotal.toFixed(3) + " Euro");
+        }
+
+        function calculateVat()
+        {
+            if (isNaN($("#subtotal-vat-input").val()) || $("#subtotal-vat-input").val() === "") {
+
+                $("#subtotal-vat-input").val("0");
+            }
+
+            $("#subtotal-vat").text((parseFloat($("#subtotal-value").text().split(" ")[0]) + parseFloat($("#subtotal-vat-input").val())).toFixed(3) + " Euro");
+            calculatePosTotal();
+        }
+
+        function calculateDiscount()
+        {
+             if (isNaN($("#subtotal-vat-input").val()) || $("#subtotal-vat-input").val() === "") {
+
+                $("#subtotal-vat-input").val("0");
+            }
+
+             if (isNaN($("#subtotal-discount-input").val()) || $("#subtotal-discount-input").val() === "") {
+
+                $("#subtotal-discount-input").val("0");
+            }
+
+            if (parseFloat($("#subtotal-discount-input").val()) > 100) {
+                $("#subtotal-discount-input").val("100");
+            }
+
+            let averageSubtotal = (parseFloat($("#subtotal-value").text().split(" ")[0]));
+            let discountPercent = parseFloat($("#subtotal-discount-input").val()) / 100;
+            let totalDiscount = (averageSubtotal * discountPercent).toFixed(3);
+
+            $("#subtotal-discount").text(totalDiscount + " Euro");
+            calculatePosTotal();
+        }
+
+        function calculatePosTotal() {
+
+            let subtotal = (parseFloat($("#subtotal-value").text().split(" ")[0]));
+            let discount = (parseFloat($("#subtotal-discount").text().split(" ")[0]));
+            let vat = (parseFloat($("#subtotal-vat").text().split(" ")[0]));
+
+            $("#pos-total").text((vat - discount).toFixed(3) + " Euro");
+        }
+
+    </script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Login" asp-action="Login">POS System</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Login" asp-action="Login">Login</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2020 - PosSystem - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
