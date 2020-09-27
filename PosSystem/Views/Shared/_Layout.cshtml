@@ -214,6 +214,11 @@
 
                 selectedProducts.forEach(showInReceipt);
 
+                $("html").click(function () {
+                    window.location.reload();
+                });
+
+
              });
         }
 
@@ -314,7 +319,7 @@
             CalculatePosTransactionValues(productId);
         }
 
-        var myVar = setInterval(calculateSubtotalValues, 5000);
+        var myVar = setInterval(calculateSubtotalValues, 3000);
 
         function calculateSubtotalValues() {
             calculateSubTotalValues();
